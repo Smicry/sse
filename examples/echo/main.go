@@ -16,7 +16,6 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -43,7 +42,13 @@ func echo(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	sse.WriteEvent(w, sse.Event{Data: []byte(fmt.Sprintf("Hi %s, ", string(bs)))})
+	sse.WriteEvent(w, sse.Event{Data: []byte("Hi ")})
+	f.Flush()
+	time.Sleep(1 * time.Second)
+	sse.WriteEvent(w, sse.Event{Data: []byte(string(bs))})
+	f.Flush()
+	time.Sleep(1 * time.Second)
+	sse.WriteEvent(w, sse.Event{Data: []byte(", ")})
 	f.Flush()
 	time.Sleep(1 * time.Second)
 	sse.WriteEvent(w, sse.Event{Data: []byte("Happy ")})
@@ -77,8 +82,10 @@ window.addEventListener("load", function(evt) {
 
     var output = document.getElementById("output");
     var input = document.getElementById("input");
+	const send = document.getElementById('send')
 
-    document.getElementById("send").onclick = function(evt) {
+    send.onclick = function(evt) {
+		this.disabled = true;
 		output.innerHTML = "";
         fetch("{{.}}",{
             method: "POST",
@@ -100,6 +107,7 @@ window.addEventListener("load", function(evt) {
 				return reader.read().then(({ done, value }) => {
         			if (done) {
           				console.log('over');
+						send.disabled = false;
           				return;
         			}
 					output.innerHTML += (decoder.decode(value)).replace("data:","")
